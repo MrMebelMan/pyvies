@@ -3,6 +3,9 @@
 from requests import post as requests_post
 from bs4 import BeautifulSoup as Soup
 
+NoneType = type(None)
+
+
 class Vies:
     # ISO 3166-1 alpha-2 country codes.
     EU_COUNTRY_CODES = set([
@@ -36,8 +39,8 @@ class Vies:
         'SK',  # Slovakia.
     ])
 
-    def request(self, vat_id: (str, None), country_code: (str, None) = None):
-        allowed_arg_types = (type(None), str)
+    def request(self, vat_id: (str, NoneType), country_code: (str, NoneType) = None):
+        allowed_arg_types = (NoneType, str)
 
         if not isinstance(vat_id, allowed_arg_types):
             raise TypeError('vat_id should be either str, or NoneType')
