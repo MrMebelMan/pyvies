@@ -1,13 +1,13 @@
 # PyVIES
-A simple Python3 API wrapper for VIES VAT number validation.
+A simple Python3 API wrapper for VIES VAT number validation (with ratelimit bypass feature).
 
 # Usage
 
 ```python
 from pyvies import Vies
 
-
-vies_api = Vies()
+bypass_ratelimit = True  # use a workaround to bypass API ban (optional)
+vies_api = Vies(bypass_ratelimit)
 
 vat_id = 'qwertyuiop'  # with or without the country code prefix
 country_code = 'WL'  # optional, will be used if no prefix found in vat_id
