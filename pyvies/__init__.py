@@ -158,7 +158,7 @@ class ViesRequest:
         self.is_valid = self.get_tag_text('valid') == 'true'
 
         if bypass_ratelimit and self.error == self.RATELIMIT_RESPONSE:
-            self.error = False
+            self.error = None
             self.is_valid = True
             return  # we will not get the company name and address from ratelimited response anyway
 
