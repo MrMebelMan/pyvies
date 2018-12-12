@@ -64,7 +64,7 @@ class Vies:
         country_code = country_code.upper()
 
         vat_id = vat_id.lstrip().rstrip().upper() if vat_id else ''
-        vat_id = ''.join([c for c in vat_id if c not in '\t -'])
+        vat_id = ''.join([c for c in vat_id if c not in '\n\t -'])
 
         request = ViesRequest(vat_id, country_code)
 
@@ -194,7 +194,7 @@ class ViesRequest:
 
         if bypass_ratelimit:
             data = xml_request % (self.country_code, '1337')
-            self.response = requests_post(url=self.url, data=data, headers=headers)
+            self.response = requests_post(url=self.url, data=data, headers=headers, timeout=10)
 
             self.validate()
             if self.error:
