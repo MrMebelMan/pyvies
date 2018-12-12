@@ -41,24 +41,15 @@ class Vies:
     ])
 
 
-    def __init__(self, bypass_ratelimit=False):
-        # a switch to bypass the 1 minute API ban after sending the same data twice
-        # API returns valid=False correctly for invalid requests, even when ratelimited
-        # The idea is to exploit this behaviour by first sending the invalid request for the same country,
-        # making sure that server returned the correct valid=False response,
-        # and then continuing to check the real VAT ID, considering ratelimit error as success
-        self.bypass_ratelimit = bypass_ratelimit
-
-
-    def request(self, vat_id: (str, NoneType), country_code: (str, NoneType) = None):
+    def request(self, vat_id: (str, NoneType), country_code: (str, NoneType) = '', bypass_ratelimit: bool = False):
         allowed_arg_types = (NoneType, str)
         vat_re = r'^([0-9A-Za-z]{2,12})$'
         country_code_re = r'^([A-Z]{2})$'
 
         if not isinstance(vat_id, allowed_arg_types):
-            raise TypeError('vat_id should be either str, or NoneType')
+            raise TypeError('vat_id should be either str, or NoneType, not %s' % type(vat_id))
         elif not isinstance(country_code, allowed_arg_types):
-            raise TypeError('country_code should be either str, or NoneType')
+            raise TypeError('country_code should be either str, or NoneType, not %s') % type(country_code)
 
         country_code = country_code or ''
         country_code = country_code.upper()
@@ -68,8 +59,8 @@ class Vies:
 
         request = ViesRequest(vat_id, country_code)
 
-        if len(vat_id) <= 8:
-            request.error = 'vat_id (%s) should be at least 8 characters long' % vat_id
+        if len(vat_id) < 2:
+            request.error = 'vat_id (%s) should be at least 2 characters long' % vat_id
         elif country_code and vat_id[:2] == country_code:
             vat_id = vat_id[2:]
         elif not country_code:
@@ -92,7 +83,7 @@ class Vies:
 
         request.country_code = country_code
         request.vat_id = vat_id
-        request.post(self.bypass_ratelimit)
+        request.post(bypass_ratelimit)
 
         return request
 
@@ -102,6 +93,7 @@ class ViesRequest:
     url = 'http://ec.europa.eu/taxation_customs/vies/services/checkVatService'
 
     def __init__(self, vat_id: str, country_code: str):
+        self.timeout = 10
         self.vat_id = vat_id
         self.country_code = country_code
         self.is_valid = None
@@ -171,7 +163,13 @@ class ViesRequest:
             self.company_address = self.company_address.replace('---', '') or None
 
 
-    def post(self, bypass_ratelimit=False):
+    def post(self, bypass_ratelimit: bool = False):
+        # bypass_ratelimit is a switch to bypass the 1 minute API ban after sending the same data twice
+        # API returns valid=False correctly for invalid requests, even when ratelimited
+        # The idea is to exploit this behaviour by first sending the invalid request for the same country,
+        # making sure that server returned the correct valid=False response,
+        # and then continuing to check the real VAT ID, considering ratelimit error as success
+
         headers = {'Content-type': 'text/xml'}
 
         xml_request = '' \
@@ -194,12 +192,22 @@ class ViesRequest:
 
         if bypass_ratelimit:
             data = xml_request % (self.country_code, '1337')
-            self.response = requests_post(url=self.url, data=data, headers=headers, timeout=10)
+            self.response = requests_post(
+                url=self.url,
+                data=data,
+                headers=headers,
+                timeout=self.timeout
+            )
 
             self.validate()
             if self.error:
                 return  # The server is down, do not try to send the real request
 
-        self.response = requests_post(url=self.url, data=self.data, headers=headers)
+        self.response = requests_post(
+            url=self.url,
+            data=self.data,
+            headers=headers,
+            timeout=self.timeout
+        )
         self.validate(bypass_ratelimit)
 
