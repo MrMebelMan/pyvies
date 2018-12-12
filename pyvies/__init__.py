@@ -38,7 +38,8 @@ class Vies:
 
     def request(self, vat_id: str, country_code: str = None):
         country_code = country_code.upper() if type(country_code) is str else country_code
-        vat_id = vat_id.lstrip().rstrip().upper()
+
+        vat_id = vat_id.lstrip().rstrip().upper() if vat_id else ''
         vat_id = ''.join([c for c in vat_id if c not in '\t -'])
 
         request = ViesRequest(vat_id, country_code)
