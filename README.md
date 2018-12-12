@@ -21,3 +21,8 @@ else:
     print('%s is an invalid VAT!' % vat_id)
     print(request.error)
 ```
+# Tests
+Some countries (IT, EL), will ratelimit your requests if you send the same data twice.
+```bash
+./run_tests.sh
+```
