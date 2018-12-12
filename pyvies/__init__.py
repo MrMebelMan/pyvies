@@ -39,6 +39,16 @@ class Vies:
         'SK',  # Slovakia.
     ])
 
+
+    def __init__(self, bypass_ratelimit=False):
+        # a switch to bypass the 1 minute API ban after sending the same data twice
+        # API returns valid=False correctly for invalid requests, even when ratelimited
+        # The idea is to exploit this behaviour by first sending the invalid request for the same country,
+        # making sure that server returned the correct valid=False response,
+        # and then continuing to check the real VAT ID, considering ratelimit error as success
+        self.bypass_ratelimit = bypass_ratelimit
+
+
     def request(self, vat_id: (str, NoneType), country_code: (str, NoneType) = None):
         allowed_arg_types = (NoneType, str)
 
@@ -72,13 +82,15 @@ class Vies:
             request.is_valid = False
             return request
 
-        request = ViesRequest(vat_id, country_code)
-        request.post()
+        request.country_code = country_code
+        request.vat_id = vat_id
+        request.post(self.bypass_ratelimit)
 
         return request
 
 
 class ViesRequest:
+    RATELIMIT_RESPONSE = 'MS_UNAVAILABLE'
     url = 'http://ec.europa.eu/taxation_customs/vies/services/checkVatService'
 
     def __init__(self, vat_id: str, country_code: str):
@@ -133,8 +145,14 @@ class ViesRequest:
             return tag.text
 
 
-    def validate(self):
+    def validate(self, bypass_ratelimit=False):
+        self.soup = Soup(self.response.text, 'xml')
         self.is_valid = self.get_tag_text('valid') == 'true'
+
+        if bypass_ratelimit and self.error == self.RATELIMIT_RESPONSE:
+            self.error = False
+            self.is_valid = True
+            return  # we will not get the company name and address from ratelimited response anyway
 
         self.company_name = self.get_tag_text('name', optional=True)
         if self.company_name:
@@ -145,10 +163,10 @@ class ViesRequest:
             self.company_address = self.company_address.replace('---', '') or None
 
 
-    def post(self):
+    def post(self, bypass_ratelimit=False):
         headers = {'Content-type': 'text/xml'}
 
-        self.data = '' \
+        xml_request = '' \
         '<?xml version="1.0" encoding="UTF-8"?>' \
         '<SOAP-ENV:Envelope ' \
         'xmlns:ns0="urn:ec.europa.eu:taxud:vies:services:checkVat:types" ' \
@@ -158,14 +176,22 @@ class ViesRequest:
         '<SOAP-ENV:Header/>' \
         '<ns1:Body>' \
         '<ns0:checkVat>' \
-        '<ns0:countryCode>' + self.country_code + '</ns0:countryCode>' \
-        '<ns0:vatNumber>' + self.vat_id + '</ns0:vatNumber>' \
+        '<ns0:countryCode>%s</ns0:countryCode>' \
+        '<ns0:vatNumber>%s</ns0:vatNumber>' \
         '</ns0:checkVat>' \
         '</ns1:Body>' \
         '</SOAP-ENV:Envelope>'
 
-        self.response = requests_post(url=self.url, data=self.data, headers=headers)
-        self.soup = Soup(self.response.text, 'xml')
-        self.validate()
+        self.data = xml_request % (self.country_code, self.vat_id)
 
+        if bypass_ratelimit:
+            data = xml_request % (self.country_code, '1337')
+            self.response = requests_post(url=self.url, data=data, headers=headers)
+
+            self.validate()
+            if self.error:
+                return  # The server is down, do not try to send the real request
+
+        self.response = requests_post(url=self.url, data=self.data, headers=headers)
+        self.validate(bypass_ratelimit)
 
