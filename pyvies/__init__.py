@@ -50,7 +50,9 @@ class Vies:
         elif not country_code:
             country_code, vat_id = vat_id[:2], vat_id[2:]
 
-        if any(c.isdigit() for c in country_code):
+        if len(country_code) != 2:
+            request.error = 'country code (%s) should be 2 characters long' % country_code
+        elif any(c.isdigit() for c in country_code):
             request.error = 'country code (%s) cannot contain digits' % country_code
         elif country_code not in self.EU_COUNTRY_CODES:
             request.error = 'unsupported country code: "%s"' % country_code
