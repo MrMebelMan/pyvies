@@ -36,7 +36,14 @@ class Vies:
         'SK',  # Slovakia.
     ])
 
-    def request(self, vat_id: str, country_code: str = None):
+    def request(self, vat_id: (str, None), country_code: (str, None) = None):
+        allowed_arg_types = (type(None), str)
+
+        if not isinstance(vat_id, allowed_arg_types):
+            raise TypeError('vat_id should be either str, or NoneType')
+        elif not isinstance(country_code, allowed_arg_types):
+            raise TypeError('country_code should be either str, or NoneType')
+
         country_code = country_code.upper() if type(country_code) is str else country_code
 
         vat_id = vat_id.lstrip().rstrip().upper() if vat_id else ''
