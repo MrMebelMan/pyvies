@@ -2,6 +2,7 @@
 
 from requests import post as requests_post
 from bs4 import BeautifulSoup as Soup
+from re import match as re_match
 
 NoneType = type(None)
 
@@ -51,13 +52,16 @@ class Vies:
 
     def request(self, vat_id: (str, NoneType), country_code: (str, NoneType) = None):
         allowed_arg_types = (NoneType, str)
+        vat_re = r'^([0-9A-Za-z]{2,12})$'
+        country_code_re = r'^([A-Z]{2})$'
 
         if not isinstance(vat_id, allowed_arg_types):
             raise TypeError('vat_id should be either str, or NoneType')
         elif not isinstance(country_code, allowed_arg_types):
             raise TypeError('country_code should be either str, or NoneType')
 
-        country_code = country_code.upper() if type(country_code) is str else country_code
+        country_code = country_code or ''
+        country_code = country_code.upper()
 
         vat_id = vat_id.lstrip().rstrip().upper() if vat_id else ''
         vat_id = ''.join([c for c in vat_id if c not in '\t -'])
@@ -65,16 +69,20 @@ class Vies:
         request = ViesRequest(vat_id, country_code)
 
         if len(vat_id) <= 8:
-            request.error = 'vat_id (%s) is too short' % vat_id
+            request.error = 'vat_id (%s) should be at least 8 characters long' % vat_id
         elif country_code and vat_id[:2] == country_code:
             vat_id = vat_id[2:]
         elif not country_code:
             country_code, vat_id = vat_id[:2], vat_id[2:]
 
-        if len(country_code) != 2:
-            request.error = 'country code (%s) should be 2 characters long' % country_code
-        elif any(c.isdigit() for c in country_code):
-            request.error = 'country code (%s) cannot contain digits' % country_code
+        if request.error:
+            request.is_valid = False
+            return request
+
+        if not re_match(vat_re, vat_id):
+            request.error = "vat_id '%s' doesn't match the pattern '%s'" % (vat_id, vat_re)
+        elif not re_match(country_code_re, country_code):
+            request.error = "country_code '%s' doesn't match the pattern '%s'" % (country_code, country_code_re)
         elif country_code not in self.EU_COUNTRY_CODES:
             request.error = 'unsupported country code: "%s"' % country_code
         
