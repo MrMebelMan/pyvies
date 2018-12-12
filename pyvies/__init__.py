@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 
 from requests import post as requests_post
-
 from bs4 import BeautifulSoup as Soup
-from bs4.element import Tag as XmlTag
-
 
 class Vies:
     # ISO 3166-1 alpha-2 country codes.
@@ -112,7 +109,7 @@ class ViesRequest:
             self.error = error_attr.text
 
 
-    def get_tag_text(self, name: str, optional=False) -> XmlTag:
+    def get_tag_text(self, name: str, optional: bool = False):
         tag = self.soup.find(name)
         if not tag:
             if not optional:
