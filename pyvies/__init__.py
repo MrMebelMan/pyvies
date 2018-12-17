@@ -40,6 +40,10 @@ class Vies:
         'SK',  # Slovakia.
     ])
 
+    COUNTRY_CODE_ALIASES = {
+        'GR': 'EL',
+    }
+
 
     def request(self, vat_id: (str, NoneType), country_code: (str, NoneType) = '', bypass_ratelimit: bool = False):
         allowed_arg_types = (NoneType, str)
@@ -53,6 +57,9 @@ class Vies:
 
         country_code = country_code or ''
         country_code = country_code.upper()
+
+        if country_code in self.COUNTRY_CODE_ALIASES:
+            country_code = self.COUNTRY_CODE_ALIASES[country_code]
 
         vat_id = vat_id.lstrip().rstrip().upper() if vat_id else ''
         vat_id = ''.join([c for c in vat_id if c not in '\n\t -'])
