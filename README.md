@@ -32,3 +32,7 @@ or simply:
 ```bash
 ./run_tests.sh
 ```
+# Disclaimer
+This is not a hack, just a different interpretation of server's response.
+
+It's important to mention that VIES is not ratelimiting by IP - it blocks the whole country globally for everyone instead :trollface:
